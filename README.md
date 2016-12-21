@@ -4,7 +4,7 @@
 
 This sample code is an implementation of a custom rolling upgrade that avoids the problem of implementing Rolling Upgrade of JDG 6.6.0.
 
-Rolling Upgrade of the standard implementation of JDG 6.6.0 creates the key list of the cache to be migrated as a single entry and tries to transfer that entry to the destination cluster with the Hot Rod protocol. However, the current Hot Rod protocol has a constraint that the payload of the message must be 2 GB or less, and there is a problem that migration of a cache whose byte array marshalling the key list exceeds 2 GB can not be performed (Bug 1293575). This sample code is implemented without 2 GB constraints on the key list.
+Rolling Upgrade of the standard implementation of JDG 6.6.0 creates the key list of the cache to be migrated as a single entry and tries to transfer that entry to the destination cluster with the Hot Rod protocol. However, the current Hot Rod protocol has a constraint that the payload of the message must be 2 GB or less, and there is a problem that migration of a cache whose byte array marshalling the key list exceeds 2 GB can not be performed (Bug 1293575, fixed in JDG 6.6.1 and 7.0). This sample code is implemented without 2 GB constraints on the key list.
 
 Features of the sample code are as follows.
 
