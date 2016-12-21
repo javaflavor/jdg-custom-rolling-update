@@ -1,0 +1,10 @@
+#
+# add-controller-cache.cli
+#
+# WARNING: After executing this command, newly created target cluster must be restarted, because cache store is not activated on-the-fly.
+#
+
+/subsystem=infinispan/cache-container=clustered/distributed-cache=customCacheController:stop-cache()
+
+/subsystem=infinispan/cache-container=clustered/distributed-cache=customCacheController:start-cache()
+

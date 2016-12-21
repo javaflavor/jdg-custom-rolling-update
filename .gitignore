@@ -1,0 +1,19 @@
+*.tmp
+*.bak
+*.swp
+
+# Eclipse
+.project
+.classpath
+.settings/
+.tern-project
+.faces-config.xml.jsfdia
+
+# Maven
+target/
+
+# Mac OS X
+.DS_Store
+
+# Svn
+.svn/

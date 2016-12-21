@@ -1,0 +1,20 @@
+#
+# add-controller-cache.cli
+#
+# WARNING: After executing this command, newly created target cluster must be restarted, because cache store is not activated on-the-fly.
+#
+
+batch
+
+# Add cache named 'cacheController'.
+
+/subsystem=infinispan/cache-container=clustered/distributed-cache=customCacheController:add(mode=SYNC, start=EAGER)
+
+# Add custom store to cacheController cache.
+
+/subsystem=infinispan/cache-container=clustered/distributed-cache=customCacheController/store=STORE:add(class=com.redhat.example.jdg.store.CustomCacheControlStore)
+
+# Execute batch.
+run-batch
+
+/:reload
