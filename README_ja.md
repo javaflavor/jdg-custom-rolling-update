@@ -14,6 +14,16 @@ JDG 6.6.0の標準実装のRolling Upgradeでは、マイグレーション対�
 4. recordKnownGlobalKeyset()オペレーションで取得したキー一覧は、Hot Rodクライアントから参照することができるため、キャッシュの規模に関わらず、JDGサーバの外部から全てのエントリの値を調査することが可能。
 5. ローリングアップグレードの基本的な作業の流れは標準のものとほぼ同じ。
 
+## 動作確認済みJDGバージョン
+
+このサンプルコードは以下のJDGバージョンの見合わせで、動作確認を行いました。
+
+|移行元クラスタ|移行先クラスタ|
+|--------------|--------------|
+|JDG 6.6.2     |JDG 6.6.2     |
+|JDG 6.6.2     |RHDG 7.2.3    |
+|RHDG 7.2.3    |RHDG 7.2.3    |
+
 ## サンプルコードの動作確認
 
 ### 準備
@@ -21,10 +31,10 @@ JDG 6.6.0の標準実装のRolling Upgradeでは、マイグレーション対�
 サンプルコードはJavaで記述されており、プロジェクトのビルドツールにはMavenを使用しています。サンプルのツールを実行できるようにするためには、まずJDK 8とApache Mavenが利用可能である状態にしてください。以下のコマンドを実行し、
 
 	$  mvn --version
-    Apache Maven 3.3.1 (cab6659f9874fa96462afef40fcf6bc033d58c1c; 2015-03-14T05:10:27+09:00)
+    Apache Maven 3.5.4 (1edded0938998edf8bf061f1ceb3cfdeccf443fe; 2018-06-18T03:33:14+09:00)
 		:
 	$ javac -version
-    javac 1.8.0_65
+    javac 1.8.0_151
 
 ### 設定ファイルの確認
 
@@ -107,10 +117,15 @@ src/main/resources/migration.properties:
 
 ### サンプルコードのビルド
 
-サンプルコードは以下のコマンドを実行することでビルドが完了し、サンプルのツールを実行できる状態になります。
+サンプルコードはJDG 6.x用にビルドする場合と、RHDG 7.x用にビルドする場合で、コマンドラインオプションが異なります。具体的には、6.x用にビルドする場合はプロファイル`dg6x`を指定し、7.x用にビルドする場合はプロファイル`dg7x`を指定してビルドします。
 
 	$ cd jdg-custom-rolling-update
-	$ mvn clean package
+	
+	JDG 6.x用の場合：
+	$ mvn clean package -Pdg6x
+	
+	JDG 7.x用の場合：
+	$ mvn clean package -Pdg7x
 
 以下のような"BUILD SUCCESS"のメッセージが出力されたら、ビルドは成功です。
 
@@ -123,42 +138,67 @@ src/main/resources/migration.properties:
     [INFO] Final Memory: 17M/220M
     [INFO] ------------------------------------------------------------------------
 
-上記により、JDGサーバにデプロイ可能なバックアップ用モジュールがtargetディレクトリ配下に作成されます。
+上記により、JDGサーバにデプロイ可能なバックアップ用モジュールがtargetディレクトリ配下に作成されます。モジュール名は6.x用と7.x用で異なります。6.xのモジュール名は`jdg-custom-rolling-update-dg6x.jar`に、7.x用のモジュール名は`jdg-custom-rolling-update-dg7x.jar`になります。
 
     $ ls target/
     ./                      generated-sources/      maven-status/
-    ../                     jdg-custom-rolling-update.jar
+    ../                     jdg-custom-rolling-update-dg6x.jar
     classes/                maven-archiver/
     
 ### モジュールのJDGサーバへのデプロイ
 
-上記で出来上がったモジュールjdg-backup-control.jarをクラスタ内の全てのJDGインスタンスのdeploymentsディレクトリにコピーします。ローリングアップグレードを行う場合は、移行元クラスタと移行先クラスタの両方にデプロイします。
+上記で出来上がったモジュール`jdg-backup-control-dg6x.jar`(または、`jdg-backup-control-dg7x.jar`)をクラスタ内の全てのJDGインスタンスのdeploymentsディレクトリにコピーします。ローリングアップグレードを行う場合は、移行元クラスタと移行先クラスタの両方にデプロイします。デプロイ方法はJDG 6.xとRHDG 7.xで違いはありません。
 
-    $ scp target/jdg-custom-rolling-update.jar \
+	JDG 6.xの場合：
+    $ scp target/jdg-custom-rolling-update-dg6x.jar \
         jboss@server1:/opt/jboss/jboss-datagrid-6.6.0-server/node1/deployments/
-    $ scp target/jdg-custom-rolling-update.jar \
+    $ scp target/jdg-custom-rolling-update-dg6x.jar \
         jboss@server2:/opt/jboss/jboss-datagrid-6.6.0-server/node2/deployments/
         :
+        
+	RHDG 7.xの場合：
+    $ scp target/jdg-custom-rolling-update-dg7x.jar \
+        jboss@server1:/opt/jboss/jboss-datagrid-7.2.0-server/node1/deployments/
+    $ scp target/jdg-custom-rolling-update-dg7x.jar \
+        jboss@server2:/opt/jboss/jboss-datagrid-7.2.0-server/node2/deployments/
+        :
 
-このモジュール(カスタムストア)を使用したダミーのキャッシュ(名前：customCacheController)を作成し、JDGサーバを順にリスタートします。
+### ダミーキャッシュ(customCacheController)の作成
 
-キャッシュ作成とJDGサーバ再起動をスクリプトにしたファイルadd-controller-cache.cliを同梱していますので、以下のように実行してください。
+デプロイしたモジュール(カスタムストア)を使用したダミーのキャッシュ(名前：customCacheController)を作成し、JDGサーバを順にリスタートします。
 
+キャッシュ作成とJDGサーバ再起動をスクリプトにしたファイル`add-controller-cache-dg6x.cli`(または、`add-controller-cache-dg7x.cli`)を同梱していますので、以下のように実行してください。
+
+	JDG 6.xの場合：
     $ /opt/jboss/jboss-datagrid-6.6.0-server/bin/cli.sh \
     	--connect='remoting://<user>:<passwd>@server1:9999' \
-    	--file=add-controller-cache.cli
+    	--file=add-controller-cache-dg6x.cli
     $ /opt/jboss/jboss-datagrid-6.6.0-server/bin/cli.sh \
     	--connect='remoting://<user>:<passwd>@server2:9999' \
-    	--file=add-controller-cache.cli
+    	--file=add-controller-cache-dg6x.cli
+    	:
+	RHDG 7.xの場合：
+    $ /opt/jboss/jboss-datagrid-7.2.0-server/bin/cli.sh \
+    	--controller='server1:9990' \
+    	--file=add-controller-cache-dg7x.cli
+    $ /opt/jboss/jboss-datagrid-7.2.0-server/bin/cli.sh \
+    	--controller='server2:9990' \
+    	--file=add-controller-cache-dg7x.cli
     	:
 
---connectオプションの接続先URLの管理ポート番号はデフォルトが9999です。複数インスタンスを起動して、ポートオフセットを設定している場合は、そのオフセットの値を9999に加算した値を使用してください。
+JDG 6.xの場合、--connectオプションの接続先URLの管理ポート番号はデフォルトが9999です。複数インスタンスを起動して、ポートオフセットを設定している場合は、そのオフセットの値を9999に加算した値を使用してください。
+
+RHDG 7.xにおける接続先は、--controllerオプションを使用する点に注意してください。また、JDG 6.xとRHDG 7.xではデフォルトの管理ポートが変更になってい点もご注意ください。なお、RHDG 7.xの場合は、サーバの再起動は不要のため`add-controller-cache-dg7x.cli`からは`reload()`コマンドが省略されています。
 
 修正されたclustered.xmlファイルは以下の部分が追加されていることを確認してください。
 
                 <distributed-cache name="customCacheController" mode="SYNC" start="EAGER">
                     <store class="com.redhat.example.jdg.store.CustomCacheControlStore"/>
                 </distributed-cache>
+
+### Remote Storeの追加(移行先クラスタのみ)
+
+移行元クラスタから移行先クラスタへのデータ転送には、標準のローリングアップグレードと同様Remote Storeを使用します。Remote Storeの設定方法については、移行先バージョンの製品ドキュメントを参照してください。
 
 
 ### サンプルの実行
@@ -171,7 +211,7 @@ src/main/resources/migration.properties:
 
     com.redhat.example:name=RollingUpgradeManagerEx
 
-JConsoleが接続できる場合は、JConsoleの左ペインで"com.redhat.example"を選択すると、RollingUpgradeManagerExという名前のMBeanが追加されていることが分かると思います。
+JConsoleが接続できる場合は、JConsoleの左ペインで`"com.redhat.example"`を選択すると、`RollingUpgradeManagerEx`という名前のMBeanが追加されていることが分かると思います。
 
 キー一覧の取得を行う場合は、このMBeanの**recordKnownGlobalKeyset(cacheName)**オペレーションに対象のキャッシュ名を指定して実行します。
 
@@ -179,14 +219,21 @@ JMX接続する先のJDGインスタンスは、クラスタ内のどのイン�
 
 #### 新旧クラスタのデータ同期の実行
 
-旧クラスタと新クラスタのデータを同期する場合は、マニュアルに示されているように、新クラスタ側に旧クラスタと接続するリモートストアを設定しておく必要があります。リモートストアを設定し、新クラスタを再起動したら、RollingUpgradeManagerEx MBeanの**synchronizeData(cacheName)**オペレーションを実行することで、新クラスタのデータが全て取り込まれます。
+旧クラスタと新クラスタのデータを同期する場合は、`RollingUpgradeManagerEx` MBeanの**synchronizeData(cacheName)**オペレーションを実行することで、新クラスタのデータが全て取り込まれます。
 
 なお、キー一覧の取得および新旧クラスタのデータ同期のJMX APIを呼び出すためのshスクリプトも同梱していますので、合わせてご確認ください。
 
-* bin/jdg-dumpkeys.sh	(キー一覧の取得用)
-* bin/jdg-synchronize.sh	(新旧クラスタのデータ同期用)
+JDG 6.xの場合：
 
-上記shスクリプトを使用する場合の接続情報は、bin/cachecontrol.jsに定義されています。使用する環境に応じて修正してください。
+* bin/jdg-dumpkeys-dg6x.sh	(キー一覧の取得用)
+* bin/jdg-synchronize-dg6x.sh	(新旧クラスタのデータ同期用)
+
+RHDG 7.xの場合：
+
+* bin/jdg-dumpkeys-dg7x.sh	(キー一覧の取得用)
+* bin/jdg-synchronize-dg7x.sh	(新旧クラスタのデータ同期用)
+
+上記shスクリプトを使用する場合の接続情報は、`bin/cachecontrol-dg6x.js`(または、`bin/cachecontrol-dg7x.js`)に定義されています。使用する環境に応じて修正してください。
 
     // Any server to connect using JMX protocol.
     
@@ -198,18 +245,40 @@ JMX接続する先のJDGインスタンスは、クラスタ内のどのイン�
     var username = "admin"
     var password = "welcome1!"
 
-それぞれのshスクリプトには、作業対象のキャッシュ名を引数に指定します。例えば、namedCacheのキー一覧を取得する時は、以下のように実行します。
+それぞれのshスクリプトには、作業対象のキャッシュ名を引数に指定します。例えば、`default`のキー一覧を取得する時は、以下のように実行します。
 
-	$ bin/jdg-dumpkeys.sh namedCache
+	JDG 6.xの場合：
+	$ bin/jdg-dumpkeys-dg6x.sh default
+	
+	RHDG 7.xの場合：
+	$ bin/jdg-dumpkeys-dg7x.sh default
 
-新旧クラスタのデータ同期を行う時は、jdg-synchronize.shを実行します。
+新旧クラスタのデータ同期を行う時は、以下のように実行します。
 
-	$ bin/jdg-synchronize.sh namedCache
+	JDG 6.xの場合：
+	$ bin/jdg-synchronize-dg6x.sh default
+	
+	RHDG 7.xの場合：
+	$ bin/jdg-synchronize-dg7x.sh default
+
+## 注意事項
+
+### JDG 6.xを移行元、RHDG 7.2.3を移行先に設定する場合の注意
+
+JDG 6.xを移行元、RHDG 7.2.3を移行先とし、移行先クラスタにRemote Storeを設定した場合、そのキャッシュの`Statistics` MBeanの`numberOfEntries`属性を参照すると該当のJMXオペレーションがハングする問題があります。
+
+この問題を回避するには、`numberOfEntries`属性の代わりに`numberOfEntriesInMemory`属性で代用し、synchronizeオペレーションの完了後直ちに、ソースクラスタの切断とRemote Storeの削除を行えば、それ以降は問題なく`numberOfEntries`属性を参照することができるようになります。
+
+	dafaultキャッシュを使用していた場合：
+	
+	/opt/jboss/jboss-datagrid-7.2.0-server/bin/cli.sh -c --controller=localhost:10090
+	[standalone@localhost:10090 /] /subsystem=datagrid-infinispan/cache-container=clustered/distributed-cache=default:disconnect-source(migrator-name=hotrod)
+	[standalone@localhost:10090 /] /subsystem=datagrid-infinispan/cache-container=clustered/configurations=CONFIGURATIONS/distributed-cache-configuration=default/remote-store=REMOTE-STORE:remove()
 
 ## 補足事項
 
 今回のサンプルを使用するにあたり、以下の点に注意してください。
 
-* jdg-backup-controlモジュールのロジックを変更してJDGサーバに適用したい場合は、モジュールを再ビルド、再デプロイした後、cacheControllerキャッシュのみを再起動すれば変更したロジックをJDGサーバに反映することが出来ます。JDGサーバの再起動は必要ありませんし、ビジネスデータを含んだキャッシュのリバランスもトリガされません。cacheControllerキャッシュを再起動するスクリプト restart-controller-cache.cliが同梱されていますので、合わせてご確認ください。
+* `jdg-backup-control`モジュールのロジックを変更してJDGサーバに適用したい場合は、モジュールを再ビルド、再デプロイした後、cacheControllerキャッシュのみを再起動すれば変更したロジックをJDGサーバに反映することが出来ます。JDGサーバの再起動は必要ありませんし、ビジネスデータを含んだキャッシュのリバランスもトリガされません。cacheControllerキャッシュを再起動するスクリプト `restart-controller-cache-dg6x.cli`が同梱されていますので、合わせてご確認ください。
 
 以上

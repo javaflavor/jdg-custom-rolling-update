@@ -16,7 +16,7 @@ batch
 
 # Add remote store to specified cache.
 
-/subsystem=infinispan/cache-container=clustered/distributed-cache=namedCache/remote-store=REMOTE-STORE:add(remote-servers=[{outbound-socket-binding => remote-store-hotrod-server}], cache=namedCache, hotrod-wrapping=true, shared=true, purge=false, passivation=false, tcp-no-delay=true, socket-timeout=60000)
+/subsystem=infinispan/cache-container=clustered/distributed-cache=default/remote-store=REMOTE-STORE:add(remote-servers=[{outbound-socket-binding => remote-store-hotrod-server}], cache=default, hotrod-wrapping=true, shared=true, purge=false, passivation=false, tcp-no-delay=true, socket-timeout=60000)
 
 # Execute batch.
 run-batch

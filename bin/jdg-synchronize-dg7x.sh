@@ -10,7 +10,8 @@ if [ "x${JDG_HOME}" == "x" ]; then
 else
 
 CLASSPATH=${JDG_HOME}/bin/client/jboss-cli-client.jar
+CONFIG=cachecontrol-dg7x.config
 
-jrunscript -cp "$CLASSPATH" -f "${BASEDIR}/cachecontrol.js" "${BASEDIR}/cachecontrol.config" synchronizeData $1
+jrunscript -cp "$CLASSPATH" -f "${BASEDIR}/cachecontrol.js" "${BASEDIR}/${CONFIG}" synchronizeData $1
 
 fi

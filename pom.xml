@@ -41,32 +41,22 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<!-- for org.infinispan.CacheException -->
-			<groupId>org.infinispan</groupId>
-			<artifactId>infinispan-adaptor52x</artifactId>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.infinispan</groupId>
 			<artifactId>infinispan-cachestore-remote</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		<!-- 
-		<dependency>
-			<groupId>org.infinispan</groupId>
-			<artifactId>infinispan-cdi</artifactId>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>javax.enterprise</groupId>
-			<artifactId>cdi-api</artifactId>
-			<scope>provided</scope>
-		</dependency>
-		-->
 	</dependencies>
 
 	<build>
-		<finalName>${project.artifactId}</finalName>
+		<finalName>${project.artifactId}-${datagrid.target}</finalName>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<directory>src/${datagrid.target}/resources</directory>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -78,14 +68,33 @@
 					</compilerArgs>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.0.0</version>
+				<executions>
+					<execution>
+						<id>add-source</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>src/${datagrid.target}/java</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
 	<repositories>
 		<repository>
-			<id>redhat-techpreview-repository</id>
-			<name>Red Hat Tech Preview Repository</name>
-			<url>http://maven.repository.redhat.com/techpreview/all</url>
+			<id>redhat-ga-repository</id>
+			<name>Red Hat GA Repository</name>
+			<url>http://maven.repository.redhat.com/ga</url>
 			<layout>default</layout>
 			<releases>
 				<enabled>true</enabled>
@@ -98,21 +107,23 @@
 		</repository>
 	</repositories>
 
-	<pluginRepositories>
-		<pluginRepository>
-			<id>redhat-techpreview-repository</id>
-			<name>Red Hat Tech Preview Repository</name>
-			<url>http://maven.repository.redhat.com/techpreview/all/</url>
-			<layout>default</layout>
-			<releases>
-				<enabled>true</enabled>
-				<updatePolicy>never</updatePolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-				<updatePolicy>never</updatePolicy>
-			</snapshots>
-		</pluginRepository>
-	</pluginRepositories>
-
+	<profiles>
+		<profile>
+			<id>dg6x</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<properties>
+				<datagrid.target>dg6x</datagrid.target>
+				<infinispan.version>6.4.0.Final-redhat-4</infinispan.version>
+			</properties>
+		</profile>
+		<profile>
+			<id>dg7x</id>
+			<properties>
+				<datagrid.target>dg7x</datagrid.target>
+				<infinispan.version>8.5.3.Final-redhat-00002</infinispan.version>
+			</properties>
+		</profile>
+	</profiles>
 </project>

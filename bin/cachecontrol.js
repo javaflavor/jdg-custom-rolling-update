@@ -48,13 +48,14 @@ types[0] = cls.getName()
 con.invoke(objname, command, params, types)
 
 function getJMXConnector(server, username, password) {
-    var url = new JMXServiceURL("service:jmx:remoting-jmx://" + server)
+    var url = new JMXServiceURL("service:jmx:"+jmx_protocol+"://" + server)
     var cls = new java.lang.String().getClass()
     var cred = java.lang.reflect.Array.newInstance(cls, 2)
     cred[0] = username
     cred[1] = password
     var env = {"jmx.remote.credentials" : cred}
-    return JMXConnectorFactory.connect(url, env)
+//    return JMXConnectorFactory.connect(url, env)
+    return JMXConnectorFactory.connect(url)
 }
 
 function sleep(sec) {

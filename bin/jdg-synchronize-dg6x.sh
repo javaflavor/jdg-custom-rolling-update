@@ -10,7 +10,8 @@ if [ "x${JDG_HOME}" == "x" ]; then
 else
 
 CLASSPATH=${JDG_HOME}/bin/client/jboss-cli-client.jar
+CONFIG=cachecontrol-dg6x.config
 
-jrunscript -Dorg.jboss.remoting-jmx.timeout=10 -cp "$CLASSPATH" -f "${BASEDIR}/cachecontrol.js" "${BASEDIR}/cachecontrol.config" recordKnownGlobalKeyset $1
+jrunscript -cp "$CLASSPATH" -f "${BASEDIR}/cachecontrol.js" "${BASEDIR}/${CONFIG}" synchronizeData $1
 
 fi

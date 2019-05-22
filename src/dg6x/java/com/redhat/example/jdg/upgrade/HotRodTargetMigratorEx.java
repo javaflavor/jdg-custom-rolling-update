@@ -66,7 +66,7 @@ public class HotRodTargetMigratorEx implements TargetMigrator {
 			throw new CacheException("Unable to collect all known entries.", e);
 		}
 	}
-
+	
 	static class SynchronizeDataTask implements DistributedCallable<Object, Object, Long>, Serializable {
 		private static final long serialVersionUID = -1066657803906434600L;
 

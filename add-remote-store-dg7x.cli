@@ -1,0 +1,23 @@
+#
+# add-remote-store.cli
+#
+# 2015/12/02
+# written by Takashi Nishigaya<tnishiga@redhat.com>
+#
+# WARNING: After executing this command, newly created target cluster must be restarted, because remote store is not activated on-the-fly.
+#
+connect
+
+batch
+
+# Configure outbound socket binding to the target cluster.
+
+/socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=remote-store-hotrod-server:write-attribute(name=host, value=localhost)
+
+# Add remote store to specified cache.
+
+/subsystem=datagrid-infinispan/cache-container=clustered/configurations=CONFIGURATIONS/distributed-cache-configuration=default/remote-store=REMOTE-STORE:add(remote-servers=[{outbound-socket-binding => remote-store-hotrod-server}], cache=default, hotrod-wrapping=true, shared=true, purge=false, passivation=false, tcp-no-delay=true, socket-timeout=60000, protocol-version=2.3)
+
+# Execute batch.
+run-batch
+

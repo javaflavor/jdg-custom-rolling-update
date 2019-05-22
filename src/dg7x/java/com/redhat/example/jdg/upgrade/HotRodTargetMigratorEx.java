@@ -6,7 +6,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -54,17 +54,22 @@ public class HotRodTargetMigratorEx implements TargetMigrator {
 				Callable<Long> call = new SynchronizeDataTask();
 				DistributedTask<Long> task = des.createDistributedTaskBuilder(call)
 						.timeout(config.synchronizeTimeoutMin, TimeUnit.MINUTES).build();
-				List<Future<Long>> futures = des.submitEverywhere(task);
-				for (Future<Long> future : futures) {
+				List<CompletableFuture<Long>> futures = des.submitEverywhere(task);
+				for (CompletableFuture<Long> future : futures) {
 					count += future.get(); // Collect total count.
 				}
 			}
-			log.infof("Migrated total %d entries of cache %s", count, cache.getName());
+			log.infof("Migrated total %d entries of cache %s, including primaries and backups.", count, cache.getName());
 			return count;
 		} catch (Exception e) {
 			log.error("Unable to collect all known entries.", e);
 			throw new CacheException("Unable to collect all known entries.", e);
 		}
+	}
+
+	@Override
+	public long synchronizeData(final Cache<Object, Object> cache, int readBatch, int threads) throws CacheException {
+		return 0;
 	}
 
 	static class SynchronizeDataTask implements DistributedCallable<Object, Object, Long>, Serializable {
@@ -108,14 +113,8 @@ public class HotRodTargetMigratorEx implements TargetMigrator {
 				try {
 					Marshaller marshaller = (Marshaller)config.marshallerClass.newInstance();
 					final AtomicInteger count = new AtomicInteger(0);
-					int clusterSize = cache.getCacheManager().getMembers().size();
 					int memberIndex = getMemberIndex();
-					log.debugf("clusterSize = %d, memberIndex = %d", clusterSize, memberIndex);
 					for (long partitionIndex = 0; partitionIndex < Long.MAX_VALUE; partitionIndex++) {
-						if (partitionIndex % clusterSize != memberIndex) {
-							log.debugf("Skip keySet '%s'.", knownKey + partitionIndex);
-							continue; // This is not my part.
-						}
 						byte[] knownKeys = marshaller
 								.objectToByteBuffer(knownKey + partitionIndex);
 						if (!keyCache.containsKey(knownKeys)) {
@@ -129,6 +128,10 @@ public class HotRodTargetMigratorEx implements TargetMigrator {
 							byte[] key = marshaller.objectToByteBuffer(okey);
 							log.infof("Processing keys: '%s' contains only single key.", knownKey + partitionIndex);
 							try {
+								if (!cache.getAdvancedCache().getDistributionManager().locate(key).contains(cache.getCacheManager().getAddress())) {
+									// Ignore if this node is not for primary nor backup owner for the key.
+									continue;
+								}
 								cache.get(key);
 								int i = count.getAndIncrement();
 								if (log.isDebugEnabled() && i % 100 == 0)
@@ -147,13 +150,16 @@ public class HotRodTargetMigratorEx implements TargetMigrator {
 							ExecutorService es = Executors.newFixedThreadPool(threads);
 							for (Object okey : keys) {
 								final byte key[] = marshaller.objectToByteBuffer(okey);
+								if (!cache.getAdvancedCache().getDistributionManager().locate(key).contains(cache.getCacheManager().getAddress())) {
+									// Ignore if this node is not for primary nor backup owner for the key.
+									continue;
+								}
 								es.submit(new Runnable() {
 
 									@Override
 									public void run() {
 										try {
-											Object val = cache.get(key);
-											cache.put(key, val);
+											cache.get(key);
 											int i = count.getAndIncrement();
 											if (log.isDebugEnabled() && i % 100 == 0)
 												log.debugf(">>    Moved %s keys\n", i);
@@ -167,6 +173,9 @@ public class HotRodTargetMigratorEx implements TargetMigrator {
 							while (!es.awaitTermination(500, TimeUnit.MILLISECONDS))
 								;
 						}
+						// Data Grid 7.x automatically load knownKeys from remote cache.
+						// So, remove it if exists.
+//						keyCache.remove(knownKeys);
 					}
 					log.infof("Processed %d entries of cache %s", count.longValue(), cache.getName());
 					return count.longValue();

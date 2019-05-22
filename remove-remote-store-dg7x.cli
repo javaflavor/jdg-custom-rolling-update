@@ -1,0 +1,21 @@
+#
+# remove-remote-store.cli
+#
+# 2019/05/21
+# written by Takashi Nishigaya<tnishiga@redhat.com>
+#
+connect
+
+batch
+
+# Disconnect source cluster.
+
+/subsystem=datagrid-infinispan/cache-container=clustered/distributed-cache=default:disconnect-source(migrator-name=hotrod)
+
+# Remove remote store from specified cache.
+
+/subsystem=datagrid-infinispan/cache-container=clustered/configurations=CONFIGURATIONS/distributed-cache-configuration=default/remote-store=REMOTE-STORE:remove()
+
+# Execute batch.
+run-batch
+
