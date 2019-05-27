@@ -281,6 +281,12 @@ $ bin/jdg-synchronize-dg6x.sh default
 For RHDG 7.x:
 $ bin/jdg-synchronize-dg7x.sh default
 ~~~
+
+#### Disconnect Source Cluster
+
+After data synchronization finished, you must disconnect source cluster using CLI or JMX operation. Please refer to the documentation of the target Data Grid version for disconnectiong source cluster.
+
+
 ## Warning
 
 ### Migration from JDG 6.x to RHDG 7.2.x
