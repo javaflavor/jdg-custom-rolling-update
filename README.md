@@ -91,6 +91,12 @@ migration.record_timeout_min = 10
 
 # Timeout(min) for operation synchronizeData().
 migration.synchronize_timeout_min = 10
+
+# Dumpkeys throttling: Do sleep per entries while scanning. This value must be less than migration.max_num_keys.
+migration.dumpkeys_sleep_per_entries = 100
+
+# Dumpkeys throttling: sleep time (ms) for each migration.dumpkeys_sleep_per_entries scan.
+migration.dumpkeys_sleep_ms = 1
 ~~~
 
 To save the key list in a dedicated cache prepared in advance, set the cache name to **migration.key\_cache\_name** property. If migration.key\_cache\_name is not set, save the key list in the same cache from which the key list was obtained.
@@ -193,10 +199,10 @@ $ /opt/jboss/jboss-datagrid-6.6.0-server/bin/cli.sh \
 	--file=add-controller-cache-dg6x.cli
 	:
 For RHDG 7.x:
-$ /opt/jboss/jboss-datagrid-7.2.0-server/bin/cli.sh \
+$ /opt/jboss/jboss-datagrid-7.2.0-server/bin/cli.sh -c \
 	--controller='server1:9990' \
 	--file=add-controller-cache-dg7x.cli
-$ /opt/jboss/jboss-datagrid-7.2.0-server/bin/cli.sh \
+$ /opt/jboss/jboss-datagrid-7.2.0-server/bin/cli.sh -c \
 	--controller='server2:9990' \
 	--file=add-controller-cache-dg7x.cli
 	:

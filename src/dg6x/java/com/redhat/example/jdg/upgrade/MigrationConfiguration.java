@@ -16,6 +16,8 @@ public class MigrationConfiguration {
 	static final String MARSHALLER = "migration.marshaller";
 	static final String RECORD_TIMEOUT_MIN = "migration.record_timeout_min";
 	static final String SYNCHRONIZE_TIMEOUT_MIN = "migration.synchronize_timeout_min";
+	static final String DUMPKEYS_SLEEP_PER_ENTRIES = "migration.dumpkeys_sleep_per_entries";
+	static final String DUMPKEYS_SLEEP_MS = "migration.dumpkeys_sleep_ms";
 
 	static Logger log = Logger.getLogger(MigrationConfiguration.class);
 	static MigrationConfiguration config = new MigrationConfiguration();
@@ -27,6 +29,8 @@ public class MigrationConfiguration {
 	Class marshallerClass;
 	int recordTimeoutMin;
 	int synchronizeTimeoutMin;
+	int dumpkeysSleepPerEntries;
+	long dumpkeysSleepMs;
 	
 	public static MigrationConfiguration getInstance() {
 		return config;
@@ -55,6 +59,12 @@ public class MigrationConfiguration {
 			log.info("init: recordTimeoutMin = "+ recordTimeoutMin);
 			synchronizeTimeoutMin = Integer.parseInt(props.getProperty(SYNCHRONIZE_TIMEOUT_MIN));
 			log.info("init: restoreTimeoutMin = "+ synchronizeTimeoutMin);
+			dumpkeysSleepPerEntries = props.getProperty(DUMPKEYS_SLEEP_PER_ENTRIES) == null ? -1 :
+				Integer.parseInt(props.getProperty(DUMPKEYS_SLEEP_PER_ENTRIES));
+			log.info("init: dumpkeysSleepPerEntries = "+ dumpkeysSleepPerEntries);
+			dumpkeysSleepMs = props.getProperty(DUMPKEYS_SLEEP_MS) == null ? -1 :
+				Long.parseLong(props.getProperty(DUMPKEYS_SLEEP_MS));
+			log.info("init: dumpkeysSleepMs = "+ dumpkeysSleepMs);
 		} catch (Exception e) {
 			throw new IllegalStateException(String.format("Failed to load property file '%s': ", PROPERTY_FILE), e);
 		}
