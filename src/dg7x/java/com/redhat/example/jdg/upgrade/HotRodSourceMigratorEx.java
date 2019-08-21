@@ -154,7 +154,7 @@ public class HotRodSourceMigratorEx implements SourceMigrator {
 				}
 				if (config.dumpkeysSleepPerEntries > 0 && config.dumpkeysSleepMs > 0 &&
 						count % config.dumpkeysSleepPerEntries == 0) {
-					log.infof("Sleeping %d (ms)", config.dumpkeysSleepMs);
+					log.debugf("Sleeping %d (ms)", config.dumpkeysSleepMs);
 					TimeUnit.MILLISECONDS.sleep(config.dumpkeysSleepMs);
 				}
 			}
